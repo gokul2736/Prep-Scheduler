@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>P² Prep Dashboard</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f6f8fd 0%, #eef2f3 100%);
+            --glass: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --shadow: 0 10px 30px rgba(0,0,0,0.06);
+            --accent-p1: #6c5ce7; /* Pranathi - Purple */
+            --accent-p2: #ff7675; /* Pragathi - Red */
+            --chill-bg: linear-gradient(135deg, #00b894, #00cec9);
+            --text-main: #2d3436;
+            --text-sub: #636e72;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        @media (min-width: 900px) {
+            .dashboard {
+                grid-template-columns: 2fr 1fr; 
+                grid-template-rows: auto auto;
+            }
+            .col-header { grid-column: 1 / -1; }
+            .col-main { grid-column: 1 / 2; }
+            .col-side { grid-column: 2 / 3; grid-row: 2 / 4; }
+        }
+
+        /* --- CARDS --- */
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: all 0.5s ease;
+        }
+
+        /* --- HEADER --- */
+        .header-card { display: flex; justify-content: space-between; align-items: center; }
+        .brand { 
+            font-size: 1.5rem; font-weight: 800; 
+            background: linear-gradient(45deg, #6c5ce7, #a29bfe); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+        }
+
+        .user-toggle {
+            background: #dfe6e9; border-radius: 50px; padding: 4px; display: flex; position: relative;
+        }
+        .toggle-btn {
+            background: none; border: none; padding: 10px 20px; border-radius: 50px;
+            cursor: pointer; font-weight: 700; z-index: 2; color: #636e72; transition: 0.3s;
+        }
+        .toggle-btn.active { color: white; }
+        .toggle-bg {
+            position: absolute; top: 4px; left: 4px; height: calc(100% - 8px); width: 50%;
+            background: var(--accent-p1); border-radius: 50px; 
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- HAPPENING NOW --- */
+        .now-panel { border-left: 6px solid var(--accent-p1); position: relative; overflow: hidden; }
+        
+        .now-panel.chill-mode {
+            background: var(--chill-bg) !important; border: none !important; transform: scale(1.02); color: white;
+        }
+        .now-panel.chill-mode .now-label, .now-panel.chill-mode .now-sub, .now-panel.chill-mode .timer-chip, .now-panel.chill-mode span {
+            color: white !important; border-color: rgba(255,255,255,0.3);
+        }
+        .now-panel.chill-mode .live-dot { background: white; }
+        .now-panel.chill-mode .timer-chip { background: rgba(255,255,255,0.2); }
+
+        .now-label {
+            font-size: 0.75rem; font-weight: 800; color: var(--accent-p1);
+            text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 12px; display: flex; align-items: center;
+        }
+        .live-dot {
+            height: 8px; width: 8px; background: #e17055; border-radius: 50%;
+            margin-right: 8px; animation: pulse 1.5s infinite;
+        }
+        .now-action { font-size: 2.2rem; font-weight: 800; line-height: 1.1; margin-bottom: 8px; }
+        .now-sub { font-size: 1.1rem; color: #636e72; margin-bottom: 20px; }
+        .meta-row { display: flex; gap: 20px; align-items: center; }
+        .timer-chip {
+            background: #f1f2f6; padding: 8px 16px; border-radius: 12px;
+            font-family: monospace; font-weight: 700; color: #2d3436; font-size: 1.1rem;
+        }
+
+        /* --- MAGIC CARDS --- */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .mini-card {
+            background: white; border-radius: 20px; padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.03);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        .mini-label { font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #b2bec3; margin-bottom: 5px; letter-spacing: 0.5px;}
+        .mini-val { font-size: 1.5rem; font-weight: 800; color: #2d3436; line-height: 1.2; }
+        .mini-sub { font-size: 0.8rem; color: #b2bec3; margin-top: 5px;}
+
+        /* --- SIDE SCHEDULE --- */
+        .exam-list { list-style: none; padding: 0; margin: 0; }
+        .exam-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 0; border-bottom: 1px solid #f1f1f1;
+        }
+        .exam-item:last-child { border-bottom: none; }
+        .exam-date { font-weight: 600; color: #b2bec3; font-size: 0.8rem; }
+        .exam-name { font-weight: 700; font-size: 1rem; }
+        .exam-tag { font-size: 0.65rem; padding: 5px 10px; border-radius: 8px; background: #eee; font-weight: 800; }
+
+        /* --- TIMELINE GRID --- */
+        .routine-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 10px; margin-top: 20px;
+        }
+        .r-item {
+            background: white; border: 1px solid #f1f1f1; padding: 12px 5px;
+            border-radius: 14px; text-align: center; transition: 0.2s;
+        }
+        .r-time { font-size: 0.75rem; font-weight: 800; color: var(--accent-p1); display: block; margin-bottom: 4px; }
+        .r-task { font-size: 0.8rem; font-weight: 600; color: #636e72; }
+        .r-active { background: var(--accent-p1); border-color: var(--accent-p1); transform: scale(1.05); box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3); }
+        .r-active .r-time, .r-active .r-task { color: white; }
+
+        /* --- MODAL & SNACKBAR --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+            z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-card {
+            background: white; padding: 40px; border-radius: 30px;
+            text-align: center; max-width: 400px; width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+        .modal-btn {
+            background: var(--accent-p1); color: white; border: none;
+            padding: 15px 40px; border-radius: 50px; font-weight: 700; cursor: pointer; width: 100%; font-size: 1rem;
+        }
+        
+        /* Feedback Form Style */
+        .feedback-input {
+            width: 100%; padding: 15px; border: 2px solid #eee; border-radius: 15px;
+            margin-bottom: 15px; font-family: inherit; font-size: 1rem; resize: none; background: #f9f9f9;
+        }
+        .feedback-input:focus { outline: none; border-color: var(--accent-p1); background: white; }
+        
+        .snackbar {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: #2d3436; color: white; padding: 15px 30px;
+            border-radius: 50px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 900; transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; gap: 10px; min-width: 300px; justify-content: center;
+        }
+        .snackbar.show { transform: translateX(-50%) translateY(0); }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        
+        @media(max-width: 600px) {
+            .now-action { font-size: 1.8rem; }
+            .info-grid { grid-template-columns: 1fr 1fr; } 
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    
+    <div class="card col-header header-card">
+        <div class="brand">🚀P² Prep Dashboard</div>
+        <div class="user-toggle">
+            <div class="toggle-bg" id="toggleBg"></div>
+            <button class="toggle-btn active" onclick="switchUser('pranathi')">Pranathi</button>
+            <button class="toggle-btn" onclick="switchUser('pragathi')">Pragathi</button>
+        </div>
+    </div>
+
+    <div class="col-main">
+        <div class="card now-panel" id="nowPanel">
+            <div class="now-label" id="nowLabel"><span class="live-dot"></span>HAPPENING NOW</div>
+            <div class="now-action" id="nowAction">Syncing...</div>
+            <div class="now-sub" id="nowSub">Loading timeline...</div>
+            <div class="meta-row">
+                <div class="timer-chip" id="clock">00:00</div>
+                <div style="font-size: 0.9rem; font-weight: 600; opacity: 0.7;">Exam in: <span id="daysLeft">--</span> days</div>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="mini-card">
+                <div class="mini-label">Next Break In</div>
+                <div class="mini-val" id="breakTimer">-- min</div>
+                <div class="mini-sub" id="breakName">Hang in there!</div>
+            </div>
+            <div class="mini-card">
+                <div class="mini-label">Pro Tip 💡</div>
+                <div class="mini-val" id="tipText" style="font-size: 1.1rem; line-height: 1.4;">Loading...</div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <div style="font-weight: 800; color: #b2bec3; font-size: 0.8rem; margin-bottom: 15px; letter-spacing: 1px;">TODAY'S TIMELINE</div>
+            <div class="routine-grid" id="routineGrid"></div>
+        </div>
+    </div>
+
+    <div class="card col-side" style="display: flex; flex-direction: column; gap: 20px;">
+        <div>
+            <div style="font-weight: 800; color: #b2bec3; font-size: 0.8rem; margin-bottom: 15px; letter-spacing: 1px;">UPCOMING BATTLES</div>
+            <ul class="exam-list">
+                <li class="exam-item">
+                    <div><div class="exam-date">Feb 17</div><div class="exam-name">Mathematics</div></div>
+                    <span class="exam-tag">MAJOR</span>
+                </li>
+                <li class="exam-item">
+                    <div><div class="exam-date">Feb 21</div><div class="exam-name">English</div></div>
+                    <span class="exam-tag">EASY</span>
+                </li>
+                <li class="exam-item">
+                    <div><div class="exam-date">Feb 25</div><div class="exam-name">Science</div></div>
+                    <span class="exam-tag">HARD</span>
+                </li>
+                <li class="exam-item">
+                    <div><div class="exam-date">Mar 02</div><div class="exam-name">Hindi</div></div>
+                    <span class="exam-tag">FOCUS</span>
+                </li>
+                <li class="exam-item">
+                    <div><div class="exam-date">Mar 07</div><div class="exam-name">Social Science</div></div>
+                    <span class="exam-tag">FINAL</span>
+                </li>
+            </ul>
+        </div>
+
+        <div style="border-top: 2px dashed #f1f1f1; padding-top: 20px; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; justify-content: flex-end;">
+            
+            <div style="font-weight: 800; color: #b2bec3; font-size: 0.7rem; letter-spacing: 1px; text-transform:uppercase;">Tactical Support</div>
+            
+            <button onclick="triggerPanic()" style="background: #ff7675; color: white; border: none; width: 100%; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(255, 118, 117, 0.3); transition: transform 0.2s;">
+                <span>🚨</span> I'M STRESSED!
+            </button>
+
+            <a href="https://theuselessweb.com/" target="_blank" style="text-decoration: none;">
+                <button style="background: #fdcb6e; color: #d35400; border: none; width: 100%; padding: 15px; border-radius: 15px; font-weight: 800; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(253, 203, 110, 0.3); transition: transform 0.2s;">
+                    <span>🤪</span> I'M BORED!
+                </button>
+            </a>
+            
+        </div>
+    </div>
+
+</div>
+
+<div class="modal-overlay" id="goodLuckModal">
+    <div class="modal-card">
+        <div class="modal-title" style="font-size:3rem">🦁</div>
+        <div class="modal-title">It's Show Time!</div>
+        <div style="margin-bottom:20px; color:#555;">You are ready. Go crush it.</div>
+        <button class="modal-btn" onclick="closeModal('goodLuckModal')">I'M READY 🔥</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="feedbackModal">
+    <div class="modal-card">
+        <div class="modal-title" style="font-size:3rem">📝</div>
+        <div class="modal-title">How did it go?</div>
+        <div style="margin-bottom:20px; color:#555;">Be honest. Tell Anna everything.</div>
+        
+        <form action="https://formspree.io/f/xdaloyrg" method="POST">
+             <input type="hidden" name="user" id="formUser" value="Pranathi">
+            <label style="display: block; text-align: left; margin-bottom: 5px; font-weight: 600; color: #555;">Your Email (Optional):</label>
+            <input type="email" name="email" class="feedback-input" placeholder="Enter your email...">
+            
+            <label style="display: block; text-align: left; margin-bottom: 5px; font-weight: 600; color: #555;">Message:</label>
+            <textarea name="message" class="feedback-input" rows="4" placeholder="It was easy/hard because..." required></textarea>
+           
+            <button type="submit" class="modal-btn">SEND TO ANNA 🚀</button>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="panicModal" style="background: rgba(108, 92, 231, 0.95);">
+    <div class="modal-card" style="background: transparent; box-shadow: none; color: white;">
+        <div style="font-size: 4rem; margin-bottom: 20px;">🌬️</div>
+        <div class="modal-title" style="color: white; font-size: 2.5rem;">Breathe In...</div>
+        <div id="breatheText" style="font-size: 1.2rem; opacity: 0.9; margin-bottom: 30px;">Hold for 4 seconds</div>
+        <div style="height: 4px; width: 200px; background: rgba(255,255,255,0.2); margin: 0 auto; border-radius: 2px; overflow: hidden;">
+            <div id="breatheBar" style="height: 100%; width: 0%; background: white;"></div>
+        </div>
+        <button onclick="closePanic()" style="background: white; color: var(--accent-p1); border: none; padding: 12px 30px; border-radius: 50px; font-weight: 800; margin-top: 40px; cursor: pointer;">I'M OKAY NOW</button>
+    </div>
+</div>
+
+<div class="snackbar" id="snackbar">
+    <span>✨</span> All the very Best Chinna packets! ❤️
+</div>
+
+<script>
+    let currentUser = 'pranathi';
+    const examDates = ['17-2', '21-2', '25-2', '2-3', '7-3']; 
+    
+    // --- SCHEDULE DATA ---
+    const schedule = [
+        { start: 630, end: 830, task: "Morning Study 🧠", type: "study" },
+        { start: 830, end: 900, task: "Breakfast 🥣", type: "break" },
+        { start: 900, end: 1100, task: "Maths 🔥", type: "study" },
+        { start: 1100, end: 1120, task: "Recharge ⚡", type: "break" },
+        { start: 1120, end: 1320, task: "English 🚀", type: "study" },
+        { start: 1320, end: 1450, task: "Lunch", type: "break" },
+        { start: 1450, end: 1650, task: "Science 🧪", type: "study" },
+        { start: 1650, end: 1710, task: "Break ", type: "break" },
+        { start: 1710, end: 1800, task: "Hindi", type: "study" },
+        { start: 1800, end: 1820, task: "Break 🚶‍♀️", type: "break" },
+        { start: 1820, end: 2020, task: "Social📝", type: "study" },
+        { start: 2020, end: 2100, task: "Dinner 🍽️", type: "break" },
+        { start: 2100, end: 2200, task: "Final Recap 🌙", type: "study" },
+        { start: 2200, end: 2400, task: "Sleep 😴", type: "break" },
+        { start: 0, end: 630, task: "Sleep 😴", type: "break" }
+    ];
+
+    function update() {
+        const now = new Date();
+        const currentVal = (now.getHours() * 100) + now.getMinutes();
+        const dateString = `${now.getDate()}-${now.getMonth() + 1}`;
+        const hour = now.getHours();
+
+        // --- EXAM DAY LOGIC ---
+        if (examDates.includes(dateString)) {
+            // MORNING (Before 4 PM): Show Good Luck
+            if (hour < 16 && !sessionStorage.getItem('seenGoodLuck')) {
+                document.getElementById('goodLuckModal').style.display = 'flex';
+                document.getElementById('snackbar').classList.add('show');
+                sessionStorage.setItem('seenGoodLuck', 'true');
+            }
+            // EVENING (After 4 PM): Show Feedback Form
+            if (hour >= 16 && !sessionStorage.getItem('seenFeedback')) {
+                document.getElementById('feedbackModal').style.display = 'flex';
+            }
+        }
+
+        // --- STANDARD LOGIC ---
+        let currentBlock = schedule.find(s => {
+             if (s.start > s.end) return currentVal >= s.start || currentVal < s.end;
+             return currentVal >= s.start && currentVal < s.end;
+        });
+        if (!currentBlock) currentBlock = { task: "Sleep / Rest 😴", type: "break" };
+
+        const panel = document.getElementById('nowPanel');
+        const action = document.getElementById('nowAction');
+        const sub = document.getElementById('nowSub');
+        const label = document.getElementById('nowLabel');
+
+        if (currentBlock.type === 'break') {
+            panel.classList.add('chill-mode');
+            label.innerHTML = "🚫 NO BOOKS ALLOWED";
+            action.innerHTML = "CHILL & RELAX 😎";
+            sub.innerHTML = `It's ${currentBlock.task} time. Put the pen down.`;
+        } else {
+            panel.classList.remove('chill-mode');
+            label.innerHTML = '<span class="live-dot"></span>HAPPENING NOW';
+            action.innerText = currentBlock.task;
+            sub.innerText = "Focus mode on. No distractions.";
+        }
+        document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        // Break Timer
+        const nextBreak = schedule.find(s => s.type === 'break' && s.start > currentVal);
+        let timeMsg = "Enjoy!";
+        let breakName = "Relaxing now";
+        
+        if (currentBlock.type === 'study' && nextBreak) {
+            let nextStartH = Math.floor(nextBreak.start / 100);
+            let nextStartM = nextBreak.start % 100;
+            let nowMin = hour * 60 + now.getMinutes();
+            let targetMin = nextStartH * 60 + nextStartM;
+            let diffMin = targetMin - nowMin;
+            timeMsg = diffMin + " min";
+            breakName = "Until " + nextBreak.task.split(' ')[0];
+        } else if (currentBlock.type === 'break') {
+            timeMsg = "NOW";
+            breakName = "You are on break!";
+        }
+        document.getElementById('breakTimer').innerText = timeMsg;
+        document.getElementById('breakName').innerText = breakName;
+
+        // Smart Tip
+        let tip = "";
+        if (currentVal >= 2200 || currentVal < 630) {
+            tip = "Sleep tight little ones... 🌙";
+        } else if (hour < 12) {
+             tip = "Morning Energy! Tackle the hardest subject now. 🐸";
+        } else if (hour < 18) {
+             tip = "Afternoon Slump? Drink water. Sit straight.";
+        } else {
+             tip = "Evening Mode: Review what you studied. Don't start new topics.";
+        }
+        document.getElementById('tipText').innerText = tip;
+
+        const mathDate = new Date('2026-02-17');
+        const diff = Math.ceil((mathDate - now) / (1000 * 60 * 60 * 24));
+        document.getElementById('daysLeft').innerText = diff > 0 ? diff : "0";
+
+        // Routine Grid
+        const grid = document.getElementById('routineGrid');
+        grid.innerHTML = '';
+        const viewSchedule = schedule.filter(s => s.start >= 630 || s.start === 0);
+        viewSchedule.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'r-item';
+            let isActive = false;
+            if (s.start > s.end) isActive = currentVal >= s.start || currentVal < s.end;
+            else isActive = currentVal >= s.start && currentVal < s.end;
+            if (isActive) div.classList.add('r-active');
+            
+            let h = Math.floor(s.start / 100);
+            let m = s.start % 100;
+            let ampm = h >= 12 ? 'pm' : 'am';
+            if(h>12) h-=12;
+            let timeStr = `${h}:${m.toString().padStart(2,'0')}${ampm}`;
+            
+            div.innerHTML = `<span class="r-time">${timeStr}</span><span class="r-task">${s.task.split(' ')[0]}</span>`;
+            grid.appendChild(div);
+        });
+    }
+
+    function switchUser(user) {
+        currentUser = user;
+        const root = document.documentElement;
+        const toggleBg = document.getElementById('toggleBg');
+        const btns = document.querySelectorAll('.toggle-btn');
+        
+        btns.forEach(b => b.classList.remove('active'));
+
+        // Update Hidden Form Field
+        document.getElementById('formUser').value = user.charAt(0).toUpperCase() + user.slice(1);
+
+        if(user === 'pranathi') {
+            root.style.setProperty('--accent-p1', '#6c5ce7'); 
+            toggleBg.style.transform = 'translateX(0)';
+            btns[0].classList.add('active');
+            document.querySelector('.now-panel').style.borderLeftColor = '#6c5ce7';
+            if(!document.getElementById('nowPanel').classList.contains('chill-mode')) {
+                 document.querySelector('.now-label').style.color = '#6c5ce7';
+            }
+        } else {
+            root.style.setProperty('--accent-p1', '#ff7675'); 
+            toggleBg.style.transform = 'translateX(100%)';
+            btns[1].classList.add('active');
+            document.querySelector('.now-panel').style.borderLeftColor = '#ff7675';
+            if(!document.getElementById('nowPanel').classList.contains('chill-mode')) {
+                document.querySelector('.now-label').style.color = '#ff7675';
+            }
+        }
+        update();
+    }
+
+    // PANIC BUTTON LOGIC
+    let panicInterval;
+    function triggerPanic() {
+        document.getElementById('panicModal').style.display = 'flex';
+        let step = 0;
+        const text = document.getElementById('breatheText');
+        const bar = document.getElementById('breatheBar');
+        const title = document.querySelector('#panicModal .modal-title');
+        
+        panicInterval = setInterval(() => {
+            step++;
+            if(step > 3) step = 0;
+            
+            if(step === 0) {
+                title.innerText = "Breathe In...";
+                text.innerText = "Fill your lungs";
+                bar.style.width = "100%";
+                bar.style.transition = "width 4s linear";
+            } else if (step === 1) {
+                title.innerText = "Hold...";
+                text.innerText = "Keep it in";
+            } else if (step === 2) {
+                title.innerText = "Breathe Out...";
+                text.innerText = "Slowly release";
+                bar.style.width = "0%";
+                bar.style.transition = "width 4s linear";
+            } else {
+                title.innerText = "Relax...";
+                text.innerText = "Stay empty";
+            }
+        }, 4000);
+    }
+
+    function closePanic() {
+        document.getElementById('panicModal').style.display = 'none';
+        clearInterval(panicInterval);
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+        if(id === 'goodLuckModal') {
+            setTimeout(() => { document.getElementById('snackbar').classList.remove('show'); }, 3000);
+        } else if (id === 'feedbackModal') {
+            sessionStorage.setItem('seenFeedback', 'true');
+        }
+    }
+
+    setInterval(update, 1000);
+    update();
+</script>
+</body>
+</html>
